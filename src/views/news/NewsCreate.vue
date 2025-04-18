@@ -34,10 +34,11 @@
 
           <div class="content-writer mt-3">
             <QuillEditor
+              v-model:content="newsContent"
+              contentType="html"
               theme="snow"
               toolbar="full"
-              v-model:content="newsContent"
-              @ready="quill = $event"
+              @textChange="onEditorChange"
               placeholder="Nhập nội dung"
             />
           </div>
@@ -51,6 +52,8 @@
 </template>
 
 <script setup>
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import Loading from '@/components/Loading.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { useTitle } from '@/composables/common.js';
@@ -64,8 +67,8 @@ useTitle('menu.dashboard');
 const { t } = useI18n();
 const isLoading = ref(false);
 
-const quill = ref(null);
-const newsContent = ref();
+const newsContent = ref('');
+const editorContent = ref('');
 const previewImage = ref();
 const thumbnail = ref();
 
@@ -74,6 +77,10 @@ const formState = reactive({
   topic: '',
   summary: '',
 });
+
+const onEditorChange = ({ editor }) => {
+  editorContent.value = editor.getHTML();
+};
 
 const uploadImage = (e) => {
   const image = e.target.files[0];
@@ -89,7 +96,7 @@ const submitNews = async () => {
   try {
     const data = {
       title: formState.title,
-      content: quill.value.getHTML() || '',
+      content: editorContent.value || '',
       topic: formState.topic,
       summary: formState.summary,
     };
@@ -117,4 +124,11 @@ const submitNews = async () => {
   background-size: cover;
 }
 
+.thumbnail-container {
+  margin-bottom: 1rem;
+  .uploading-image {
+    max-width: 200px;
+    margin-top: 1rem;
+  }
+}
 </style>

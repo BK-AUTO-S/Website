@@ -9,21 +9,16 @@
             class="mb-3"
             v-model:value="formState.title"
             addonBefore="Tiêu đề"
-            placeholder="v.d Hệ thống buồng lái mô phỏng lái xe"
+            placeholder="v.d Dự án xe tự lái"
           />
-
-          <div class="thumbnail-container">
-            <span class="me-4 fw-bold">Ảnh thumbnail</span>
-            <input type="file" accept="image" @change="uploadImage" />
-            <img :src="previewImage" class="uploading-image" />
-          </div>
 
           <div class="content-writer mt-3">
             <QuillEditor
+              v-model:content="projectContent"
+              contentType="html"
               theme="snow"
               toolbar="full"
-              v-model:content="projectContent"
-              @ready="quill = $event"
+              @textChange="onEditorChange"
               placeholder="Nhập nội dung"
             />
           </div>
@@ -37,6 +32,8 @@
 </template>
 
 <script setup>
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import Loading from '@/components/Loading.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { useTitle } from '@/composables/common.js';
@@ -50,41 +47,25 @@ useTitle('menu.dashboard');
 const { t } = useI18n();
 const isLoading = ref(false);
 
-const quill = ref(null);
-const projectContent = ref();
-const previewImage = ref();
-const thumbnail = ref();
+const projectContent = ref('');
+const editorContent = ref('');
 
 const formState = reactive({
   title: '',
 });
 
-const uploadImage = (e) => {
-  const image = e.target.files[0];
-  thumbnail.value = image;
-  const reader = new FileReader();
-  reader.readAsDataURL(image);
-  reader.onload = (e) => {
-    previewImage.value = e.target.result;
-  };
+const onEditorChange = ({ editor }) => {
+  editorContent.value = editor.getHTML();
 };
 
 const submitProject = async () => {
   try {
     const data = {
       title: formState.title,
-      content: JSON.stringify(projectContent.value) || '',
+      content: editorContent.value || '',
     };
     const response = await ProjectService.createProject(data);
-
-    const formData = new FormData();
-    let responseWithImage;
-    if (thumbnail.value) {
-      formData.append('thumbnail', thumbnail.value);
-      responseWithImage = await ProjectService.uploadImage(response.id, formData);
-    } else responseWithImage = response;
-
-    alert('Tạo dự án ' + responseWithImage.title + ' thành công ');
+    alert('Tạo dự án ' + response.title + ' thành công ');
     router.push('/project/manage');
   } catch (error) {
     alert('Có lỗi xảy ra');
@@ -95,7 +76,7 @@ const submitProject = async () => {
 <style lang="scss" scoped>
 .page-header {
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.64), rgba(0, 0, 0, 0.64)),
-    url('@/assets/img/background/bg-research.webp');
+    url('@/assets/img/background/bg-project.webp');
   background-size: cover;
 }
 </style>

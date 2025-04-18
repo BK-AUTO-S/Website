@@ -1,26 +1,21 @@
 <template>
   <div>
     <Loading :is-loading="isLoading" />
-    <PageHeader
-      :subLinks="[t('menu.dashboard'), t('menu.research')]"
-      :mainLink="formState?.title"
-      :title="t('menu.research')"
-    />
+    <PageHeader :subLinks="['Trang chủ']" mainLink="Nghiên cứu" :title="research?.title || ''" />
     <div class="page-content">
       <div class="row">
-        <div class="col-12 mb-3">
-          <div class="title">{{ formState.title }}</div>
-          <div>
-            <span class="date"> {{ formatDateString(formState.publishDate) }}</span>
-          </div>
-        </div>
         <div class="col-12">
-          <QuillEditor
-            theme="snow"
-            :toolbar="[]"
-            v-model:content="researchContent"
-            @ready="quill = $event"
-          />
+          <div v-if="research" class="research-details">
+            <div class="research-date mb-3">{{ research.publishedAt }}</div>
+            
+            <QuillEditor
+              v-model:content="researchContent"
+              contentType="html"
+              theme="snow"
+              :toolbar="false"
+              :readOnly="true"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -28,49 +23,36 @@
 </template>
 
 <script setup>
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import Loading from '@/components/Loading.vue';
 import PageHeader from '@/components/PageHeader.vue';
-import { formatDateString, useTitle } from '@/composables/common.js';
-import ResearchService from '@/services/ResearchService';
-import { onMounted, reactive, ref } from 'vue';
+import { useTitle } from '@/composables/common.js';
+import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import ResearchService from '@/services/ResearchService';
 import { useRoute } from 'vue-router';
 
-const route = useRoute();
-const researchId = route.params.id;
-
-useTitle('menu.research');
+useTitle('menu.dashboard');
 const { t } = useI18n();
+const route = useRoute();
 const isLoading = ref(false);
+const research = ref(null);
+const researchContent = ref('');
 
-const quill = ref(null);
-const researchContent = ref();
-const thumbnailUrl = ref(null);
-const formState = reactive({
-  title: '',
-  publishDate: null,
-});
-
-onMounted(() => {
-  getResearch();
-});
-
-const getResearch = async () => {
+onMounted(async () => {
   try {
-    const response = await ResearchService.getResearchById(researchId);
-    if (response.thumbnail) {
-      thumbnailUrl.value = `data:image/jpeg;base64,${response.thumbnail}`;
-    }
-    if (response.content) {
-      const data = JSON.parse(response.content);
-      quill.value.setContents(data.ops);
-    }
-    formState.title = response.title;
-    formState.publishDate = response.publishDate;
+    isLoading.value = true;
+    const response = await ResearchService.getResearchDetails(route.params.id);
+    research.value = response;
+    researchContent.value = response.content;
   } catch (error) {
-    console.error('Error getting research:', error);
+    console.error(error);
+    alert('Có lỗi xảy ra khi tải nghiên cứu');
+  } finally {
+    isLoading.value = false;
   }
-};
+});
 </script>
 
 <style lang="scss" scoped>
@@ -80,21 +62,16 @@ const getResearch = async () => {
   background-size: cover;
 }
 
-.page-content {
-  .title {
-    font-family: $vietnam-font-2;
-    margin: 10px 0;
-    font-size: 20px;
+.research-details {
+  .research-date {
+    color: #888;
   }
-  .summary {
-    color: $color-gray-8;
-  }
-  .category {
-    color: $color-primary;
-  }
-  .date {
-    padding-top: 10px;
-    color: $color-gray-7;
-  }
+}
+
+:deep(.ql-editor) {
+  padding: 0;
+}
+:deep(.ql-container) {
+  border: none !important;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div>
     <Loading :is-loading="isLoading" />
-    <PageHeader :subLinks="['Trang chủ']" mainLink="Tin tức" title="Tin tức" />
+    <PageHeader :subLinks="['Trang chủ']" mainLink="Tin tức" title="Chi tiết tin tức" />
     <div class="page-content">
       <div class="row">
         <div class="col-12">
@@ -30,26 +30,17 @@
 
           <div class="content-writer mt-3">
             <QuillEditor
+              v-model:content="newsContent"
+              contentType="html"
               theme="snow"
               toolbar="full"
-              v-model:content="newsContent"
-              @ready="quill = $event"
+              @textChange="onEditorChange"
               placeholder="Nhập nội dung"
             />
           </div>
         </div>
         <div class="action mt-4 text-center">
-          <a-button type="primary" @click="submitNews"> Lưu thay đổi</a-button>
-        </div>
-        <div class="action mt-4 text-center">
-          <a-popconfirm
-            title="Bạn có chắc chắn muốn xóa?"
-            ok-text="Có"
-            cancel-text="Không"
-            @confirm="handleDelete()"
-          >
-            <a-button danger> Xóa tin tức </a-button>
-          </a-popconfirm>
+          <a-button type="primary" @click="submitNews"> Cập nhật tin tức</a-button>
         </div>
       </div>
     </div>
@@ -57,26 +48,26 @@
 </template>
 
 <script setup>
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import Loading from '@/components/Loading.vue';
 import PageHeader from '@/components/PageHeader.vue';
-import { formatDateString, useTitle } from '@/composables/common.js';
+import { useTitle } from '@/composables/common.js';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { reactive } from 'vue';
 import NewsService from '@/services/NewsService';
-import { useRoute } from 'vue-router';
 import router from '@/router';
-
-const route = useRoute();
-const newsId = route.params.id;
+import { useRoute } from 'vue-router';
 
 useTitle('menu.dashboard');
 const { t } = useI18n();
+const route = useRoute();
 const isLoading = ref(false);
 
-const quill = ref(null);
+const newsContent = ref('');
+const editorContent = ref('');
 const publishDate = ref();
-const newsContent = ref();
 const previewImage = ref();
 const thumbnail = ref();
 
@@ -86,30 +77,8 @@ const formState = reactive({
   summary: '',
 });
 
-onMounted(() => {
-  getNews();
-});
-
-const getNews = async () => {
-  try {
-    const response = await NewsService.getNewsById(newsId);
-    if (response.thumbnail) {
-      previewImage.value = `data:image/jpeg;base64,${response.thumbnail}`;
-    }
-    formState.title = response.title;
-    formState.topic = response.topic;
-    formState.summary = response.summary;
-    publishDate.value = formatDateString(response?.publishDate);
-    if (response.content) {
-      // Load HTML directly into Quill
-      quill.value.setHTML(response.content);
-      // Remove old JSON parsing:
-      // const data = JSON.parse(response.content);
-      // quill.value.setContents(data.ops);
-    }
-  } catch (error) {
-    console.error('Error getting news:', error);
-  }
+const onEditorChange = ({ editor }) => {
+  editorContent.value = editor.getHTML();
 };
 
 const uploadImage = (e) => {
@@ -122,15 +91,36 @@ const uploadImage = (e) => {
   };
 };
 
+onMounted(async () => {
+  try {
+    isLoading.value = true;
+    const response = await NewsService.getNewsDetails(route.params.id);
+    formState.title = response.title;
+    formState.topic = response.topic;
+    formState.summary = response.summary;
+    newsContent.value = response.content;
+    editorContent.value = response.content;
+    publishDate.value = response.publishedAt;
+    if (response.thumbnail) {
+      previewImage.value = response.thumbnail;
+    }
+  } catch (error) {
+    console.error(error);
+    alert('Có lỗi xảy ra khi tải tin tức');
+  } finally {
+    isLoading.value = false;
+  }
+});
+
 const submitNews = async () => {
   try {
     const data = {
       title: formState.title,
-      content: quill.value.getHTML() || '',
+      content: editorContent.value || '',
       topic: formState.topic,
       summary: formState.summary,
     };
-    const response = await NewsService.putNews(newsId, data);
+    const response = await NewsService.updateNews(route.params.id, data);
 
     const formData = new FormData();
     let responseWithImage;
@@ -139,18 +129,7 @@ const submitNews = async () => {
       responseWithImage = await NewsService.uploadImage(response.id, formData);
     } else responseWithImage = response;
 
-    alert('Lưu tin tức ' + responseWithImage.title + ' thành công ');
-    router.push('/news/manage');
-  } catch (error) {
-    alert('Có lỗi xảy ra');
-  }
-};
-
-const handleDelete = async () => {
-  try {
-    await NewsService.deleteNews(newsId);
-
-    alert('Đã xóa tin tức');
+    alert('Cập nhật tin tức ' + responseWithImage.title + ' thành công ');
     router.push('/news/manage');
   } catch (error) {
     alert('Có lỗi xảy ra');
@@ -165,4 +144,11 @@ const handleDelete = async () => {
   background-size: cover;
 }
 
+.thumbnail-container {
+  margin-bottom: 1rem;
+  .uploading-image {
+    max-width: 200px;
+    margin-top: 1rem;
+  }
+}
 </style>

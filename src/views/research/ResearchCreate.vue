@@ -9,21 +9,16 @@
             class="mb-3"
             v-model:value="formState.title"
             addonBefore="Tiêu đề"
-            placeholder="v.d Nghiên cứu hiệu quả công nghệ Hybrid tại Việt Nam"
+            placeholder="v.d Nghiên cứu về xe tự lái"
           />
-
-          <div class="thumbnail-container">
-            <span class="me-4 fw-bold">Ảnh thumbnail</span>
-            <input type="file" accept="image" @change="uploadImage" />
-            <img :src="previewImage" class="uploading-image" />
-          </div>
 
           <div class="content-writer mt-3">
             <QuillEditor
+              v-model:content="researchContent"
+              contentType="html"
               theme="snow"
               toolbar="full"
-              v-model:content="researchContent"
-              @ready="quill = $event"
+              @textChange="onEditorChange"
               placeholder="Nhập nội dung"
             />
           </div>
@@ -37,6 +32,8 @@
 </template>
 
 <script setup>
+import { QuillEditor } from '@vueup/vue-quill';
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import Loading from '@/components/Loading.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { useTitle } from '@/composables/common.js';
@@ -50,41 +47,25 @@ useTitle('menu.dashboard');
 const { t } = useI18n();
 const isLoading = ref(false);
 
-const quill = ref(null);
-const researchContent = ref();
-const previewImage = ref();
-const thumbnail = ref();
+const researchContent = ref('');
+const editorContent = ref('');
 
 const formState = reactive({
   title: '',
 });
 
-const uploadImage = (e) => {
-  const image = e.target.files[0];
-  thumbnail.value = image;
-  const reader = new FileReader();
-  reader.readAsDataURL(image);
-  reader.onload = (e) => {
-    previewImage.value = e.target.result;
-  };
+const onEditorChange = ({ editor }) => {
+  editorContent.value = editor.getHTML();
 };
 
 const submitResearch = async () => {
   try {
     const data = {
       title: formState.title,
-      content: JSON.stringify(researchContent.value) || '',
+      content: editorContent.value || '',
     };
     const response = await ResearchService.createResearch(data);
-
-    const formData = new FormData();
-    let responseWithImage;
-    if (thumbnail.value) {
-      formData.append('thumbnail', thumbnail.value);
-      responseWithImage = await ResearchService.uploadImage(response.id, formData);
-    } else responseWithImage = response;
-
-    alert('Tạo nghiên cứu ' + responseWithImage.title + ' thành công ');
+    alert('Tạo nghiên cứu ' + response.title + ' thành công ');
     router.push('/research/manage');
   } catch (error) {
     alert('Có lỗi xảy ra');

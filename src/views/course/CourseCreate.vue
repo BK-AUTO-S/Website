@@ -39,9 +39,19 @@
           <div class="content-writer mt-3">
             <QuillEditor
               theme="snow"
-              toolbar="full"
-              v-model:content="courseContent"
-              @ready="quill = $event"
+              :toolbar="{
+                container: [
+                  ['bold', 'italic', 'underline', 'strike'],
+                  ['blockquote', 'code-block'],
+                  [{ 'header': 1 }, { 'header': 2 }],
+                  [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                  [{ 'indent': '-1'}, { 'indent': '+1' }],
+                  ['link', 'image'],
+                  ['clean']
+                ]
+              }"
+              v-model="courseContent"
+              @update:content="content => quill = content"
               placeholder="Nhập nội dung"
             />
           </div>
