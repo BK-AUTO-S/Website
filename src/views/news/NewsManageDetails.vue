@@ -101,8 +101,11 @@ const getNews = async () => {
     formState.summary = response.summary;
     publishDate.value = formatDateString(response?.publishDate);
     if (response.content) {
-      const data = JSON.parse(response.content);
-      quill.value.setContents(data.ops);
+      // Load HTML directly into Quill
+      quill.value.setHTML(response.content);
+      // Remove old JSON parsing:
+      // const data = JSON.parse(response.content);
+      // quill.value.setContents(data.ops);
     }
   } catch (error) {
     console.error('Error getting news:', error);
@@ -123,7 +126,7 @@ const submitNews = async () => {
   try {
     const data = {
       title: formState.title,
-      content: JSON.stringify(newsContent.value) || '',
+      content: quill.value.getHTML() || '',
       topic: formState.topic,
       summary: formState.summary,
     };

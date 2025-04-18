@@ -15,7 +15,7 @@
       <div class="title">{{ title }}</div>
       <div class="date">{{ formatDateString(date) }}</div>
       <div v-if="main">
-        <div class="summary">{{ summary }}</div>
+        <div class="summary" v-html="summary"></div>
       </div>
     </div>
   </div>

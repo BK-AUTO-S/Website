@@ -89,7 +89,7 @@ const submitNews = async () => {
   try {
     const data = {
       title: formState.title,
-      content: JSON.stringify(newsContent.value) || '',
+      content: quill.value.getHTML() || '',
       topic: formState.topic,
       summary: formState.summary,
     };

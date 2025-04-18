@@ -18,12 +18,8 @@
           </div>
         </div>
         <div class="col-12">
-          <QuillEditor
-            theme="snow"
-            :toolbar="[]"
-            v-model:content="newsContent"
-            @ready="quill = $event"
-          />
+          <!-- Replace QuillEditor with a div using v-html -->
+          <div v-html="newsHtmlContent"></div>
         </div>
       </div>
     </div>
@@ -46,8 +42,10 @@ useTitle('menu.news');
 const { t } = useI18n();
 const isLoading = ref(false);
 
-const quill = ref(null);
-const newsContent = ref();
+// Remove quill ref
+// const quill = ref(null);
+// Add ref for raw HTML content
+const newsHtmlContent = ref('');
 const thumbnailUrl = ref(null);
 const formState = reactive({
   title: '',
@@ -60,20 +58,27 @@ onMounted(() => {
 });
 
 const getNews = async () => {
+  isLoading.value = true; // Start loading
   try {
     const response = await NewsService.getNewsById(newsId);
     if (response.thumbnail) {
       thumbnailUrl.value = `data:image/jpeg;base64,${response.thumbnail}`;
     }
+    // Store the raw content directly (assuming it's HTML)
     if (response.content) {
-      const data = JSON.parse(response.content);
-      quill.value.setContents(data.ops);
+      newsHtmlContent.value = response.content;
+      // Remove Quill specific logic:
+      // const data = JSON.parse(response.content);
+      // quill.value.setContents(data.ops);
     }
     formState.title = response.title;
     formState.topic = response.topic;
     formState.publishDate = response.publishDate;
   } catch (error) {
     console.error('Error getting news:', error);
+    newsHtmlContent.value = '<p>Error loading content.</p>'; // Display error message
+  } finally {
+    isLoading.value = false; // Stop loading
   }
 };
 </script>
