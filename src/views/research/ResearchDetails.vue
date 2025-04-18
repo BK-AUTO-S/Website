@@ -8,13 +8,9 @@
           <div v-if="research" class="research-details">
             <div class="research-date mb-3">{{ research.publishedAt }}</div>
             
-            <QuillEditor
-              v-model:content="researchContent"
-              contentType="html"
-              theme="snow"
-              :toolbar="false"
-              :readOnly="true"
-            />
+            <div class="ql-container ql-snow">
+              <div class="ql-editor" v-html="research.content"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -23,7 +19,6 @@
 </template>
 
 <script setup>
-import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import Loading from '@/components/Loading.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -38,14 +33,12 @@ const { t } = useI18n();
 const route = useRoute();
 const isLoading = ref(false);
 const research = ref(null);
-const researchContent = ref('');
 
 onMounted(async () => {
   try {
     isLoading.value = true;
     const response = await ResearchService.getResearchDetails(route.params.id);
     research.value = response;
-    researchContent.value = response.content;
   } catch (error) {
     console.error(error);
     alert('Có lỗi xảy ra khi tải nghiên cứu');
@@ -68,10 +61,13 @@ onMounted(async () => {
   }
 }
 
-:deep(.ql-editor) {
-  padding: 0;
-}
 :deep(.ql-container) {
   border: none !important;
+  
+  .ql-editor {
+    padding: 0;
+    min-height: auto !important;
+    pointer-events: none;
+  }
 }
 </style>
